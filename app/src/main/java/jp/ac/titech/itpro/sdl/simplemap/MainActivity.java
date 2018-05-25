@@ -202,8 +202,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
         infoView.setText(getString(R.string.latlng_format,
                 latLng.latitude, latLng.longitude));
-        if (googleMap != null)
+        if (googleMap != null) {
             googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+        }
 
     }
 
