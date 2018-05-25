@@ -36,13 +36,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap googleMap;
     private GoogleApiClient googleApiClient;
     private FusedLocationProviderClient fusedLocationProviderClient;
-    private LocationRequest locationRequest;
-    private LocationCallback locationCallback;
     private OnSuccessListener<Location> locationListener;
-
-    private enum UpdatingState {STOPPED, REQUESTING, STARTED}
-
-    private UpdatingState state = UpdatingState.STOPPED;
 
     private final static String[] PERMISSIONS = {
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -69,26 +63,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
-        locationRequest = new LocationRequest();
-        locationRequest.setInterval(10000L);
-        locationRequest.setFastestInterval(5000L);
-        locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                Log.d(TAG, "onLocationCallback");
-                if (locationResult != null) {
-                    showLocationUpdate(locationResult.getLastLocation());
-                }
-            }
-        };
-
         locationListener = new OnSuccessListener<Location>() {
             @Override
             public void onSuccess(Location location) {
                 Log.d(TAG, "onSuccessListener");
-                showLocationUpdate(location);
+                LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                infoView.setText(getString(R.string.latlng_format,
+                        latLng.latitude, latLng.longitude));
+                if (googleMap != null) {
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                }
             }
         };
     }
@@ -98,28 +82,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onStart();
         Log.d(TAG, "onStart");
         googleApiClient.connect();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.d(TAG, "onResume");
-        /*
-        if (state != UpdatingState.STARTED && googleApiClient.isConnected())
-            startLocationUpdate(true);
-        else
-            state = UpdatingState.REQUESTING;
-        */
-    }
-
-    @Override
-    protected void onPause() {
-        Log.d(TAG, "onPause");
-        /*
-        if (state == UpdatingState.STARTED)
-            stopLocationUpdate();
-        */
-        super.onPause();
     }
 
     @Override
@@ -140,10 +102,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onConnected(@Nullable Bundle bundle) {
         Log.d(TAG, "onConnected");
         locationUpdate(true);
-        /*
-        if (state == UpdatingState.REQUESTING)
-            startLocationUpdate(true);
-        */
     }
 
     @Override
@@ -159,24 +117,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void updateButtonListener(View v) {
         Log.d(TAG, "onClicked");
         locationUpdate(false);
-    }
-
-    private void startLocationUpdate(boolean reqPermission) {
-        Log.d(TAG, "startLocationUpdate");
-        for (String permission : PERMISSIONS) {
-            if (ContextCompat.checkSelfPermission(this, permission)
-                    != PackageManager.PERMISSION_GRANTED) {
-                if (reqPermission)
-                    ActivityCompat.requestPermissions(this, PERMISSIONS, REQCODE_PERMISSIONS);
-                else
-                    Toast.makeText(this,
-                            getString(R.string.toast_requires_permission_format, permission),
-                            Toast.LENGTH_SHORT).show();
-                return;
-            }
-        }
-        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
-        state = UpdatingState.STARTED;
     }
 
     private void locationUpdate(boolean reqPermission) {
@@ -197,35 +137,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .addOnSuccessListener(this,locationListener);
     }
 
-    private void showLocationUpdate(Location location) {
-        Log.d(TAG, "showLocationUpdate");
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        infoView.setText(getString(R.string.latlng_format,
-                latLng.latitude, latLng.longitude));
-        if (googleMap != null) {
-            googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
-        }
-
-    }
-
-
     @Override
     public void onRequestPermissionsResult(int reqCode,
                                            @NonNull String[] permissions, @NonNull int[] grants) {
         Log.d(TAG, "onRequestPermissionsResult");
         switch (reqCode) {
         case REQCODE_PERMISSIONS:
-            //startLocationUpdate(false);
             locationUpdate(false);
             break;
         }
-    }
-
-    private void stopLocationUpdate() {
-        Log.d(TAG, "stopLocationUpdate");
-        /*
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
-        state = UpdatingState.STOPPED;
-        */
     }
 }
